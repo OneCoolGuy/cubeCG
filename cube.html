@@ -5,22 +5,28 @@
 attribute  vec4 vPosition;
 uniform mat4 translateMatrix;
 varying mat4 translateBackMatrix;
-uniform vec3 theta;
+varying mat4 vTranslateMatrix;
 uniform mat4 matrixView;
 uniform mat4 rotateMatrix;
+uniform mat4 rotateGlobalMatrix;
 uniform mat4 projectionMatrix;
 uniform int objFlag;
+uniform int objAxis;
 
 void main() 
 {
+    vTranslateMatrix = translateMatrix;
     translateBackMatrix = translateMatrix;
-    translateBackMatrix[3][0] *= -1.0;
-    translateBackMatrix[3][1] *= -1.0;
-    translateBackMatrix[3][2] *= -1.0;
+
+
+    vTranslateMatrix[3][0] *= -1.0;
+    vTranslateMatrix[3][1] *= -1.0;
+    vTranslateMatrix[3][2] *= -1.0;
 
     if(objFlag == 1){
-       gl_Position =   projectionMatrix * matrixView * translateBackMatrix *
-       rotateMatrix * translateMatrix * vPosition;
+       gl_Position =   projectionMatrix * matrixView * rotateGlobalMatrix *
+       translateBackMatrix *
+       rotateMatrix * vTranslateMatrix * vPosition;
     } else {
        gl_Position =  projectionMatrix * matrixView *  vPosition;
     }
@@ -66,7 +72,17 @@ Oops ... your browser doesn't support the HTML5 canvas element
 <button id= "xButton">Rotate X</button>
 <button id= "yButton">Rotate Y</button>
 <button id= "zButton">Rotate Z</button>
+<p>
 
+<button id= "yGlobal">Rotate Y Global</button>
+
+</p>
+<p>
+
+<button id= "orthogonal">Orthogonal View</button>
+<button id= "perspective">Perspective View</button>
+
+</p>
 
 </body>
 </html>

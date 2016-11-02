@@ -12,6 +12,7 @@ var rotateFlag = false;
 var axis = 0;
 var xaxis = 0;
 var yaxis =1;
+
 var zaxis = 2;
 // var thetaRot = [ 0, 0, 0 ];
 var theta = 0.0;
@@ -20,21 +21,26 @@ var objFlagLoc;
 var objFlag;
 var matrixViewloc,matrixView;
 var rotateMatrixLoc,rotateMatrix;
+var rotateGlobalMatrixLoc,rotateGlobalMatrix;
+var rotateGlobalBackMatrix;
 var projectionMatrixLoc,projectionMatrix;
 var translateMatrixLoc, translateMatrix;
 var faceLoc;
 
-var eye = vec3(1.0,1.0,1.0);
+
+var eye = vec3(2.5,2.0,2.0);
 const at = vec3(0.0, 0.0, 0.0);
 const up = vec3(0.0, 1.0, 0.0);
 
-var  fovy = 45.0;  // Field-of-view in Y direction angle (in degrees)
+var  fovy = 80;  // Field-of-view in Y direction angle (in degrees)
 var  aspect;       // Viewport aspect ratio
 
-var near = -10;
-var far = 10;
+var near = 1;
+var far = 90;
 var radius = 6.0;
 var theta  = 0.0;
+var thetaGlobal  = 0.0;
+var rotateGlobalIncrement = 0;
 var phi    = 0.0;
 var dr = 5.0 * Math.PI/180.0;
 
@@ -42,6 +48,9 @@ var left = -2.0;
 var right = 2.0;
 var ytop = 2.0;
 var bottom = -2.0;
+
+projectionMatrix = perspective(fovy, 1, near, far );
+rotateGlobalMatrix = rotate(thetaGlobal, axisArray[1]);
 
 var verticesObj = [
    [  0.0,  0.0,  1.0 ],
@@ -66,10 +75,10 @@ var verticesWorld = [
    [  0.0,  1.5,  0.0 ],
    [  0.0,  0.0,  1.5],
    //lines for persp
-   [ -10.0,  -0.5,  2.0 ],
-   [  10.0,  -0.5,  2.0 ],
-   [ -10.0,  -0.5, -2.0 ],
-   [  10.0,  -0.5, -2.0 ],
+   [ -90.0,  -0.5,  2.0 ],
+   [  90.0,  -0.5,  2.0 ],
+   [ -90.0,  -0.5, -2.0 ],
+   [  90.0,  -0.5, -2.0 ],
    ];
 
 
@@ -93,6 +102,7 @@ var indices = [
    8, 9,
    8, 10,
    8, 11,
+   //lines on cube faces
    //axis world
    12, 13,
    12, 14,
@@ -151,9 +161,11 @@ window.onload = function init()
    projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
 
    translateMatrixLoc = gl.getUniformLocation( program, "translateMatrix");
-   translateMatrix = translate( -0.5, -0.5, -0.5);
+   translateMatrix = translate(verticesObj[8][0], verticesObj[8][1], verticesObj[8][2]);
+   console.log(verticesObj[8]);
 
    rotateMatrixLoc = gl.getUniformLocation( program, "rotateMatrix");
+   rotateGlobalMatrixLoc = gl.getUniformLocation( program, "rotateGlobalMatrix");
    if(!rotateFlag){
       rotateMatrix = mat4();
    }
@@ -199,26 +211,46 @@ window.onload = function init()
            theta = 0;
            init();
         }
-
     };
 
-   render();
+    document.getElementById( "yGlobal" ).onclick = function () {
+       if(rotateGlobalIncrement == 0){
+           window.cancelAnimationFrame(AnimFrame);
+           rotateGlobalIncrement = 2;
+           init();
+       }
+       else if(rotateGlobalIncrement != 0){
+           window.cancelAnimationFrame(AnimFrame);
+           rotateGlobalIncrement = 0;
+           init();
+       }
+    };
+
+    document.getElementById( "orthogonal" ).onclick = function () {
+       window.cancelAnimationFrame(AnimFrame);
+       projectionMatrix = ortho( left, right, bottom, ytop, near, far );
+       init();
+    };
+
+    document.getElementById( "perspective" ).onclick = function () {
+       window.cancelAnimationFrame(AnimFrame);
+       projectionMatrix = perspective(fovy, 1, near, far );
+       init();
+    };
+
+    render();
 }
 
 function render()
 {
    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-      
-   // gl.uniform3fv(thetaLoc, thetaRot);
 
-   var projectionMatrix = ortho( left, right, bottom, ytop, near, far );
-   // projectionMatrix = perspective(90, 0.1, near, far );
-
-    // gl.uniformMatrix4fv( modelViewMatrixLoc, false, flatten(modelViewMatrix) );
+   // gl.uniformMatrix4fv( modelViewMatrixLoc, false, flatten(modelViewMatrix) );
    gl.uniformMatrix4fv( projectionMatrixLoc, false, flatten(projectionMatrix) );
    gl.uniformMatrix4fv( translateMatrixLoc, false, flatten(translateMatrix) );
    gl.uniformMatrix4fv( rotateMatrixLoc, false, flatten(rotateMatrix) );
+   gl.uniformMatrix4fv( rotateGlobalMatrixLoc, false, flatten(rotateGlobalMatrix) );
 
 
    gl.uniform1i(objFlagLoc, 1);
@@ -239,12 +271,14 @@ function render()
    gl.drawElements( gl.LINES, 2, gl.UNSIGNED_BYTE, 46);
    gl.drawElements( gl.LINES, 2, gl.UNSIGNED_BYTE, 48);
    gl.drawElements( gl.LINES, 2, gl.UNSIGNED_BYTE, 50);
+   
+   rotateGlobalMatrix = rotate(thetaGlobal,[0,1,0]);
+   thetaGlobal += rotateGlobalIncrement;
 
    if(rotateFlag){
       rotateMatrix = rotate(theta, axisArray[axis]);
       theta += 2.0;
    }  
-
    AnimFrame = window.requestAnimFrame(render);
 }
 
@@ -261,10 +295,12 @@ function multVec( u , v){
 }
 
 function updateObjVert(){
+
+   translateBackMatrix = translate(-1 * verticesObj[8][0], -1 * verticesObj[8][1], -1 * verticesObj[8][2]);
    for(var j = 0; j < verticesObj.length; ++j){
-      verticesObj[j] = multVec(translate(-0.5,-0.5,-0.5), verticesObj[j].concat(1));
+      verticesObj[j] = multVec(translateBackMatrix,verticesObj[j].concat(1));
       verticesObj[j] = multVec(rotateMatrix, verticesObj[j].concat(1));
-      verticesObj[j] = multVec(translate(0.5,0.5,0.5), verticesObj[j].concat(1));
+      verticesObj[j] = multVec(translateMatrix, verticesObj[j].concat(1));
       verticesObj[j].pop();
    }
 }
