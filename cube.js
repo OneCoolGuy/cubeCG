@@ -216,7 +216,7 @@ window.onload = function init()
     document.getElementById( "yGlobal" ).onclick = function () {
        if(rotateGlobalIncrement == 0){
            window.cancelAnimationFrame(AnimFrame);
-           rotateGlobalIncrement = 2;
+           rotateGlobalIncrement = 1.5;
            init();
        }
        else if(rotateGlobalIncrement != 0){
